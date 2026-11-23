@@ -1,58 +1,65 @@
-# NLDR on MNIST — shared code
+# NLDR on MNIST
 
-
-Group project, MATH-412 (Statistical Machine Learning, EPFL). Plans and results live in the Obsidian vault (`Project/Notes`); this folder holds the code.
+Group project, MATH-412 Statistical Machine Learning (EPFL).
+We compare nonlinear dimensionality reduction methods on MNIST.
 
 ## Layout
 
 ```
-nldr/              shared package, imported by every notebook
-  config.py        protocol: n per split, S, seeds, q, hyperparameter grids
-  data.py          load_mnist(), make_splits(), class_subset()
-  methods.py       fit(name, X, q, params, seed) -> Embedding(Y, transform, info), nine methods
-  metrics.py       ranks, co-ranking matrix, R_NX, AUC_log, T/C, out-of-sample R_NX,
-                   Spearman, centroid correlation, k-NN accuracy, silhouette, ARI/NMI, evaluate()
-  plotting.py      R_NX curves, embedding grids, digit images, Shepard diagrams, save()
-  cache.py         cache embeddings in results/embeddings/ so expensive runs happen once
-tests/             unit tests (incl. the worked example of the vault note "Quality criteria")
-notebooks/         00_data, E1_baselines, ... one notebook per experiment of the vault
-results/           CSV tables, cached embeddings
-figures/           PNG + PDF, for the report and the vault
+nldr/                          shared code (change only through a pull request)
+  data.py                      load MNIST, make the splits (n, seeds)
+  metrics.py                   scores: R_NX, AUC, trustworthiness, k-NN accuracy, ...
+notebooks/
+  01_baselines.ipynb           run first: data check + PCA baselines
+  02_yifei_spectral.ipynb      kernel PCA, MDS, Isomap          (Yifei)
+  03_jia_local.ipynb           LLE, Laplacian eigenmaps         (Jia)
+  04_sophia_neighbour.ipynb    t-SNE, UMAP, autoencoder         (Sophia)
+results/                       CSV tables  (baseline_*, 02_*, 03_*, 04_*)
+figures/                       PNG + PDF   (same prefixes)
+tests/                         unit tests for nldr/
+environment.yml                conda environment "nldr"
 ```
 
-## Setup
-
-Use a dedicated conda environment, not `base`: UMAP needs NumPy 2, which breaks several packages that ship with Anaconda's base environment.
+## Setup (once)
 
 ```bash
-conda env create -f environment.yml      # once
+git clone git@github.com:uiui8989/ml_nonlinear_model_reduction.git
+cd ml_nonlinear_model_reduction
+conda env create -f environment.yml
 conda activate nldr
-python -m ipykernel install --user --name nldr --display-name "Python (nldr)"   # once, for Jupyter
-python -m pytest -q                      # all tests should pass
+python -m pytest -q
 ```
 
-In Jupyter, pick the kernel **Python (nldr)** for every notebook.
+Then run `notebooks/01_baselines.ipynb` (it downloads MNIST into `data/`).
+In Jupyter / VS Code, choose the kernel **nldr**.
 
-## Conventions
+## Using the shared code
 
-- **Samples are rows** (scikit-learn): `X` has shape `(n, 784)`, an embedding `Y` has shape `(n, q)`. The vault notes use columns, so `X` here is $X^\top$ there.
-- Pixels are scaled to $[0,1]$; nothing else is done to the input unless an experiment says so.
-- All sizes, seeds and grids come from `nldr/config.py`. Change them there, never inside a notebook.
-- Splits: `data.make_splits()` draws disjoint `tr`, `val`, `te` index sets of equal size from the 60,000 official training images; split *s* is identical for everyone.
+```python
+from nldr import data, metrics
+X, y = data.load_mnist()
+s = data.make_splits()[0]                 # split 0: indices s.tr, s.val, s.te
+Y = ...                                   # your embedding of X[s.te], shape (n, q)
+res = metrics.evaluate(X[s.te], Y, y[s.te])
+res["J"]                                  # compare with results/baseline_pca_split0.csv
+```
 
-## Workflow
+## Daily workflow
 
-1. Open a notebook in `notebooks/`. The first cell turns on `autoreload`, so edits to `nldr/*.py` are picked up without restarting.
-2. Run it top to bottom. Figures go to `figures/`, tables to `results/`.
-3. The last cell prints a summary; paste it into `MNIST — Results log` in the vault.
+```bash
+git switch main && git pull
+git switch -c <name>/<topic>      # e.g. jia/lle-sweep
+# work, then
+git add <files>
+git commit -m "What you did"
+git push -u origin <name>/<topic>
+```
 
-## Adding or changing a method
+Open a pull request on GitHub. Your reviewer approves it, then merge.
 
-Write `_name(X, q, seed, **params) -> Embedding` in `nldr/methods.py`, register it in `_DISPATCH`, add its grid to `config.GRIDS`, and add a test in `tests/`. Every notebook then works with it.
+## Rules
 
-## Notes
-
-- `n x n` matrices: 32 MB at n = 2000, 200 MB at n = 5000. Kernel PCA, MDS, Isomap, LLE and Laplacian eigenmaps use dense solvers; keep n ≤ 5000 for them.
-- Location: keep this folder (and its Git repository) **outside iCloud Drive**; iCloud sync can corrupt `.git`. If "Desktop & Documents Folders" is turned on in iCloud settings, the Desktop is synced too, so use e.g. `~/code/nldr` instead.
-- MNIST is saved once as `data/mnist.npz`; delete it to force a fresh download.
-- VS Code: `.vscode/settings.json` points to the `nldr` interpreter and runs notebooks from their own folder. It is machine-specific and not committed.
+1. Always load data with `data.load_mnist()` and `data.make_splits()`, so everyone uses the same splits.
+2. Score every method with `metrics`, so the numbers are comparable.
+3. Edit only your own notebook; save outputs with your prefix (`02_`, `03_`, `04_`).
+4. Never commit `data/` or `results/embeddings/`.

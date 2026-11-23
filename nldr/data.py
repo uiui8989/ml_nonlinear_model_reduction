@@ -11,7 +11,10 @@ from pathlib import Path
 
 import numpy as np
 
-from . import config
+# --- Settings shared by everyone (change only through a pull request) -------
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"   # MNIST is saved here
+N_PER_SPLIT = 2000              # size of each of X_tr, X_val, X_te
+SPLIT_SEEDS = list(range(5))    # one split per seed; same seed -> same split
 
 
 def load_mnist(data_home=None):
@@ -21,7 +24,7 @@ def load_mnist(data_home=None):
     The first call downloads about 50 MB from OpenML and saves a compact copy
     as data/mnist.npz; later calls load that copy in about a second.
     """
-    data_home = config.DATA_DIR if data_home is None else data_home
+    data_home = DATA_DIR if data_home is None else data_home
     data_home = Path(data_home)
     cached = data_home / "mnist.npz"
     if cached.exists():
@@ -59,8 +62,8 @@ def make_splits(n=None, seeds=None, pool_size=60000):
     Equal sizes matter: neighbour-type hyperparameters (k_nn, perplexity)
     scale with n. Same seed -> same split for everyone in the group.
     """
-    n = config.N_PER_SPLIT if n is None else n
-    seeds = config.SPLIT_SEEDS if seeds is None else seeds
+    n = N_PER_SPLIT if n is None else n
+    seeds = SPLIT_SEEDS if seeds is None else seeds
     if 3 * n > pool_size:
         raise ValueError(f"3n = {3 * n} exceeds the pool of {pool_size} images")
     splits = []

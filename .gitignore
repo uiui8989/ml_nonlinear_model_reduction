@@ -36,3 +36,6 @@ Thumbs.db
 .vscode/
 .idea/
 .obsidian/workspace*.json
+
+# --- Old experiments kept locally, not shared ---
+_archive/

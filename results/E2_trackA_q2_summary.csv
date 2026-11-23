@@ -1,9 +1,0 @@
-method,n_splits,J_oos,knn_acc_oos
-PCA,1,0.163 ± 0.0,0.422 ± 0.0
-Kernel PCA,1,0.163 ± 0.0,0.42 ± 0.0
-Classical MDS,1,0.163 ± 0.0,0.422 ± 0.0
-Isomap,1,0.186 ± 0.0,0.5 ± 0.0
-LLE,1,0.174 ± 0.0,0.69 ± 0.0
-Laplacian eigenmaps,1,0.202 ± 0.0,0.713 ± 0.0
-UMAP,1,0.309 ± 0.0,0.842 ± 0.0
-Autoencoder,1,0.242 ± 0.0,0.676 ± 0.0
