@@ -1,0 +1,7 @@
+data/
+results/embeddings/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+.vscode/
+.DS_Store

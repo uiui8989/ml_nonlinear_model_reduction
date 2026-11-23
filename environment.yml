@@ -1,0 +1,15 @@
+name: nldr
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - scipy
+  - scikit-learn
+  - pandas
+  - matplotlib
+  - pytest
+  - umap-learn
+  - pytorch
+  - jupyterlab
+  - ipykernel

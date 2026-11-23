@@ -1,0 +1,38 @@
+# --- Data (rebuild locally with notebooks/00_data.ipynb) ---
+data/
+
+# --- Large generated outputs ---
+results/embeddings/*.npz
+# Keep: results/*.csv and figures/*.pdf|png (small, needed for report)
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+Untitled*.ipynb
+
+# --- LaTeX build files ---
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+*.nav
+*.snm
+
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.obsidian/workspace*.json
