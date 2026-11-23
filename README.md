@@ -1,5 +1,7 @@
 # NLDR on MNIST — shared code
 
+Hi I am Jeffrey. I was typing here
+
 Group project, MATH-412 (Statistical Machine Learning, EPFL). Plans and results live in the Obsidian vault (`Project/Notes`); this folder holds the code.
 
 ## Layout
