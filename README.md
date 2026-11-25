@@ -17,6 +17,7 @@ notebooks/
   04_sophia_neighbour.ipynb    t-SNE, UMAP, autoencoder         (Sophia)
 results/                       CSV tables  (baseline_*, 02_*, 03_*, 04_*, frozen_configs.csv)
 figures/                       PNG + PDF   (same prefixes)
+splits/                        stored split and holdout indices (do not edit)
 tests/                         unit tests for nldr/
 environment.yml                conda environment "nldr"
 ```
@@ -44,7 +45,8 @@ MNIST (70,000 images, 784 pixels in [0, 1])
 
 **1. Splits (development).** `data.make_splits()` gives 5 splits (seeds 0–4).
 Each split has three disjoint sets of n = 2000 images: `tr`, `val`, `te`.
-Same seed → same split for everyone. All sets have the same size because
+The indices are stored in `splits/` (committed), so everyone gets exactly the
+same images, whatever their NumPy version. All sets have the same size because
 k, perplexity and `n_neighbors` depend on n.
 
 **2. Tuning, then freezing.** Score every configuration on every split:

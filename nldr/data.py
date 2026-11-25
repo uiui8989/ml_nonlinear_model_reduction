@@ -21,6 +21,7 @@ SPLIT_SEEDS = list(range(5))    # one split per seed; same seed -> same split
 POOL_SIZE = 60000               # official training images: the development pool
 HOLDOUT_SIZE = 10000            # official test images: the final holdout
 HOLDOUT_SEED = 2026             # fixed shuffle of the holdout before chunking
+SPLITS_DIR = Path(__file__).resolve().parents[1] / "splits"   # stored indices (committed)
 
 
 def load_mnist(data_home=None):
@@ -62,21 +63,59 @@ class Split:
     te: np.ndarray
 
 
-def make_splits(n=None, seeds=None, pool_size=POOL_SIZE):
-    """Disjoint X_tr, X_val, X_te of equal size n, one Split per seed.
-
-    Equal sizes matter: neighbour-type hyperparameters (k_nn, perplexity)
-    scale with n. Same seed -> same split for everyone in the group.
-    """
-    n = N_PER_SPLIT if n is None else n
-    seeds = SPLIT_SEEDS if seeds is None else seeds
-    if 3 * n > pool_size:
-        raise ValueError(f"3n = {3 * n} exceeds the pool of {pool_size} images")
+def _generate_splits(n, seeds, pool_size):
     splits = []
     for s in seeds:
         perm = np.random.default_rng(s).permutation(pool_size)
         splits.append(Split(s, perm[:n], perm[n:2 * n], perm[2 * n:3 * n]))
     return splits
+
+
+def make_splits(n=None, seeds=None, pool_size=POOL_SIZE):
+    """Disjoint X_tr, X_val, X_te of equal size n, one Split per seed.
+
+    Equal sizes matter: neighbour-type hyperparameters (k_nn, perplexity)
+    scale with n.
+
+    The indices are stored in splits/splits_n<n>.npz, which is committed to
+    the repository, and loaded from there. So everyone gets exactly the same
+    splits whatever their NumPy version. If the file is missing it is created
+    from the seeds (the first time only).
+    """
+    n = N_PER_SPLIT if n is None else n
+    seeds = list(SPLIT_SEEDS if seeds is None else seeds)
+    if 3 * n > pool_size:
+        raise ValueError(f"3n = {3 * n} exceeds the pool of {pool_size} images")
+    path = SPLITS_DIR / f"splits_n{n}.npz"
+    if path.exists():
+        with np.load(path) as f:
+            stored = {int(s): (f[f"tr_{s}"], f[f"val_{s}"], f[f"te_{s}"])
+                      for s in f["seeds"]}
+        if all(s in stored for s in seeds):
+            return [Split(s, *stored[s]) for s in seeds]
+        raise ValueError(f"{path.name} has seeds {sorted(stored)}, not {seeds}; "
+                         "change seeds only through a pull request")
+    splits = _generate_splits(n, seeds, pool_size)
+    _save_indices(path, seeds=np.array(seeds),
+                  **{f"{k}_{sp.seed}": getattr(sp, k) for sp in splits for k in ("tr", "val", "te")})
+    return splits
+
+
+def check_stored_splits(n=None):
+    """True if the stored indices equal what this NumPy generates from the seeds.
+
+    False only means your NumPy shuffles differently; the stored file is still
+    what everyone uses.
+    """
+    n = N_PER_SPLIT if n is None else n
+    fresh = _generate_splits(n, SPLIT_SEEDS, POOL_SIZE)
+    return all(np.array_equal(a.tr, b.tr) and np.array_equal(a.val, b.val)
+               and np.array_equal(a.te, b.te) for a, b in zip(make_splits(n), fresh))
+
+
+def _save_indices(path, **arrays):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(path, **{k: np.asarray(v, dtype=np.int64) for k, v in arrays.items()})
 
 
 def class_subset(y, digit, n, seed=0, pool_size=POOL_SIZE):
@@ -104,5 +143,11 @@ def final_holdout_chunks(n=None, n_chunks=None, *, unlock=False):
     n_chunks = len(SPLIT_SEEDS) if n_chunks is None else n_chunks
     if n * n_chunks > HOLDOUT_SIZE:
         raise ValueError(f"{n_chunks} chunks of {n} exceed the {HOLDOUT_SIZE} test images")
-    perm = POOL_SIZE + np.random.default_rng(HOLDOUT_SEED).permutation(HOLDOUT_SIZE)
+    path = SPLITS_DIR / "holdout_order.npz"           # stored, like the splits
+    if path.exists():
+        with np.load(path) as f:
+            perm = f["order"]
+    else:
+        perm = POOL_SIZE + np.random.default_rng(HOLDOUT_SEED).permutation(HOLDOUT_SIZE)
+        _save_indices(path, order=perm)
     return [perm[c * n:(c + 1) * n] for c in range(n_chunks)]

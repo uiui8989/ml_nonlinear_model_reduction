@@ -52,3 +52,9 @@ def test_select_frozen_rejects_incomplete_runs():
                          "q": 2, "J": [1., 1., 2.]})
     with pytest.raises(ValueError):
         selection.select_frozen(runs, "J", "B")
+
+
+def test_splits_stored_in_repo():
+    data.make_splits()
+    assert (data.SPLITS_DIR / f"splits_n{data.N_PER_SPLIT}.npz").exists()
+    assert data.check_stored_splits()
