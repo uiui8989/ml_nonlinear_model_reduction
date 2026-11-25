@@ -77,15 +77,18 @@ def make_splits(n=None, seeds=None, pool_size=POOL_SIZE):
     Equal sizes matter: neighbour-type hyperparameters (k_nn, perplexity)
     scale with n.
 
-    The indices are stored in splits/splits_n<n>.npz, which is committed to
-    the repository, and loaded from there. So everyone gets exactly the same
-    splits whatever their NumPy version. If the file is missing it is created
-    from the seeds (the first time only).
+    With the official settings (N_PER_SPLIT, SPLIT_SEEDS) the indices are
+    stored in splits/splits_n<n>.npz, which is committed to the repository,
+    and loaded from there. So everyone gets exactly the same splits whatever
+    their NumPy version. Any other n or seeds (e.g. small splits in tests) are
+    generated from the seeds and never written to disk.
     """
     n = N_PER_SPLIT if n is None else n
     seeds = list(SPLIT_SEEDS if seeds is None else seeds)
     if 3 * n > pool_size:
         raise ValueError(f"3n = {3 * n} exceeds the pool of {pool_size} images")
+    if n != N_PER_SPLIT or seeds != list(SPLIT_SEEDS):
+        return _generate_splits(n, seeds, pool_size)        # not the official splits: not stored
     path = SPLITS_DIR / f"splits_n{n}.npz"
     if path.exists():
         with np.load(path) as f:

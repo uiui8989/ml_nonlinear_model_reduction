@@ -58,3 +58,8 @@ def test_splits_stored_in_repo():
     data.make_splits()
     assert (data.SPLITS_DIR / f"splits_n{data.N_PER_SPLIT}.npz").exists()
     assert data.check_stored_splits()
+
+
+def test_non_default_splits_are_not_stored():
+    data.make_splits(n=50, seeds=[0])
+    assert not (data.SPLITS_DIR / "splits_n50.npz").exists()
